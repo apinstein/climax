@@ -163,18 +163,10 @@ class CLImaxController
 
         // run commands
         foreach ($commands as $key => $command) {
-            $lastCommand = $previousCommand = NULL;
-            $runArguments = array(
-                $command['arguments'],
-                $this->environment,
-                $commands,
-                $lastCommand,
-                $previousCommand
-            );
             //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
             $cmdCallback = array($command['command'], 'run');
             if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
-            $result = call_user_func_array($cmdCallback, $runArguments);
+            $result = call_user_func_array($cmdCallback, array($command['arguments'], $this));
             if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
             if ($result !== 0) break;
         }
@@ -219,7 +211,7 @@ interface CLImaxCommand
     const ARG_OPTIONAL      = 'optional';
     const ARG_REQUIRED      = 'required';
 
-    public function run($arguments, $environment, $commands, $nextCommand, $previousCommand);
+    public function run($arguments, CLImaxController $cliController);
     public function getUsage($aliases, $argLinker);
     public function getDescription($aliases, $argLinker);
     public function getArgumentType();
