@@ -50,10 +50,12 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
      */
     public function testSetEnvironment()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $env = array('foo' => 'bar', 'boo' => 'baz');
+        $o = CLImaxController::create();
+
+        // test merge w/no overwrite
+        $o->setEnvironment($env);
+        $this->assertEquals($env, $o->getEnvironment());
     }
 
     /**
