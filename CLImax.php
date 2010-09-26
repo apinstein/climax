@@ -89,46 +89,45 @@ class CLImaxController
     {
         $commandNameRun = array_shift($argv);
 
-        print "ARGV:\n";
-        print_r($argv);
-        print "Commands:\n";
-        print_r(array_keys($this->commandMap));
-
         $result = 0;
         $commands = array();
         $previousCommand = NULL;
 
         // convert argv stack into processable list
-        while ($token = array_shift($argv)) {
-            $cmd = $this->commandForToken($token);
-            if ($cmd)
+        $cmd = NULL;
+        $args = array();
+        while (true) {
+            $token = array_shift($argv);
+            if (!$token)    // reached end
             {
-                // parse out arguments
-                switch ($cmd->getArgumentType()) {
-                    case CLImaxCommand::ARG_NONE;
-                        $args = array();
-                        break;
-                    case CLImaxCommand::ARG_OPTIONAL;
-                    case CLImaxCommand::ARG_REQUIRED;
-                        $args = array();
-                        while (count($argv)) {
-                            // is next token a command or an argument?
-                            if ($this->commandForToken($argv[0])) break;
-
-                            $args[] = array_shift($argv);
-                        }
-                        if (count($args) === 0 && $cmd->getArgumentType() === CLImaxCommand::ARG_REQUIRED) throw new Exception("Argument required for {$token}.");
-                        break;
+                if (count($commands) === 0 && $this->defaultCommand)
+                {
+                    $cmd = $this->defaultCommand;
                 }
+                if ($cmd)
+                {
+                    $commands[] = array('command' => $cmd, 'arguments' => $args);
+                }
+                break;
+            }
 
-                $commands[] = array('command' => $cmd, 'arguments' => $args);
+            $nextCmd = $this->commandForToken($token);
+            if ($nextCmd)
+            {
+                if ($cmd)
+                {
+                    $commands[] = array('command' => $cmd, 'arguments' => $args);
+                }
+                $cmd = $nextCmd;
+                $args = array();
             }
             else
             {
-                // no-op; skip non-flag tokens
-                print "not sure what to do with: {$token}\nMaybe Print Usage and Bail?\n";
+                $args[] = $token;
             }
         }
+
+        // @todo ENFORCE COMMAND ARGUMENT RULES (OPT/REQ/COUNT ETC)
 
         // run commands
         foreach ($commands as $key => $command) {
@@ -141,13 +140,10 @@ class CLImaxController
                 $previousCommand
             );
             //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
-            $result = call_user_func_array(array($command['command'], 'run'), $runArguments);
+            $cmdCallback = array($command['command'], 'run');
+            if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
+            $result = call_user_func_array($cmdCallback, $runArguments);
             if ($result !== 0) break;
-        }
-
-        if ($result === 0 && $this->defaultCommand)
-        {
-            $result = $this->defaultCommand->run(array(), $this->environment, $commands, NULL, $previousCommand);
         }
 
         if (isset($opts['returnInsteadOfExit']))

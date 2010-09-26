@@ -100,4 +100,15 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
                                ->addCommand($mock, array('hw'))
                                ->runTest($argv, $argc);
     }
+
+    public function testCommandGetsExpectedArguments()
+    {
+        extract($this->generateArgvArgc("repeat 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+        $o = CLImaxController::create()
+                               ->addCommand($ar, array('repeat'))
+                               ->runTest($argv, $argc);
+        $this->assertEquals(5, $o);
+    }
 }
