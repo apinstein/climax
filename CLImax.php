@@ -3,6 +3,7 @@
 class CLImaxController
 {
     protected $commandMap               = array();
+    protected $usageCommands            = array();
     protected $defaultCommand           = NULL;
     protected $defaultCommandAlwaysRuns = false;
     protected $environment              = array();
@@ -12,13 +13,15 @@ class CLImaxController
      */
     protected $argLinker = NULL;
 
-    const DEBUG_EXPORT_ARGV_ARGC = 'debug_export_argv_argc';
+    const OPT_RETURN_INSTEAD_OF_EXIT    = 'returnInsteadOfExit';
+
+    const ERR_USAGE                 = -1;
 
     public function __construct($opts = array())
     {
         $this->environment = $_ENV;
         $this->options = array_merge(array(
-                                            self::DEBUG_EXPORT_ARGV_ARGC            => false,
+                                            self::OPT_RETURN_INSTEAD_OF_EXIT            => false,
         ), $opts);
     }
 
@@ -78,6 +81,7 @@ class CLImaxController
             if (isset($this->commandMap[$alias])) throw new Exception("Command " . get_class($this->commandMap[$alias]) . " has already been registered for alias {$alias}.");
             $this->commandMap[$alias] = $CLImaxCommand;
         }
+        $this->usageCommands[] = array('aliases' => $aliases, 'command' => $CLImaxCommand);
 
         return $this;
     }
@@ -152,6 +156,11 @@ class CLImaxController
 
         // @todo ENFORCE COMMAND ARGUMENT RULES (OPT/REQ/COUNT ETC)
 
+        if (count($commands) === 0)
+        {
+            return $this->usage();
+        }
+
         // run commands
         foreach ($commands as $key => $command) {
             $lastCommand = $previousCommand = NULL;
@@ -170,7 +179,7 @@ class CLImaxController
             if ($result !== 0) break;
         }
 
-        if (isset($opts['returnInsteadOfExit']))
+        if (isset($this->options['returnInsteadOfExit']))
         {
             return $result;
         }
@@ -180,9 +189,20 @@ class CLImaxController
         }
     }
 
-    public function runTest($argv, $argc)
+    public function usage()
     {
-        return $this->run($argv, $argc, array('returnInsteadOfExit' => true));
+        print "Usage:\n";
+        foreach ($this->usageCommands as $usageInfo) {
+            print $usageInfo['command']->getUsage($usageInfo['aliases'], $this->argLinker) . "\n";
+        }
+        if (isset($this->options['returnInsteadOfExit']))
+        {
+            return self::ERR_USAGE;
+        }
+        else
+        {
+            exit(self::ERR_USAGE);
+        }
     }
 
     // returns the CLImaxCommand or NULL if not a command switch

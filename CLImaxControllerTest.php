@@ -98,7 +98,57 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @testdox Calling "cmd" runs default command with no arguments.
+     * @testdox "cliapp cmd" runs "cmd" with no arguments
+     */
+    public function testCommandRunsIfPresentInArgs()
+    {
+        extract($this->generateArgvArgc("hw"));
+
+        $mock = $this->getMock('CLIHelloWorld', array('run'));
+        $mock->expects($this->once())
+                        ->method('run')
+                        ->will($this->returnValue(0));
+
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                               ->addCommand($mock, array('hw'))
+                               ->run($argv, $argc);
+    }
+
+    /**
+     * @testdox "cliapp cmd 1 2 3 4 5" runs "cmd" with arguments array(1,2,3,4,5)
+     */
+    public function testCommandGetsExpectedArguments()
+    {
+        extract($this->generateArgvArgc("repeat 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+        // ensure proper arguments to run()
+        $ar = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $ar->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array(1,2,3,4,5)));
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                               ->addCommand($ar, array('repeat'))
+                               ->run($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    /**
+     * @testdox "cliapp" will print usage if no default command is specified
+     */
+    public function testUsagePrintedIfNoCommandSpecifiedAndNoDefaultCommandSpecified()
+    {
+        extract($this->generateArgvArgc(""));
+
+        // ensure proper arguments to run()
+        $cli = $this->getMock('CLImaxController', array('usage'));
+        $cli->expects($this->once())
+                        ->method('usage');
+        $result = $cli->run($argv, $argc, array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true));
+    }
+
+    /**
+     * @testdox "cliapp" runs default command with no arguments if a command is specified with setDefaultCommand()
      */
     public function testDefaultCommandRunsWithNoArgumentsIfNoCommandsOrArgumentsSpecified()
     {
@@ -108,12 +158,15 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $def->expects($this->once())
                         ->method('testArguments')
                         ->with($this->equalTo(array()));
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def)
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
     }
 
+    /**
+     * @testdox "cliapp 1 2 3 4 5" runs default command with array(1,2,3,4,5)
+     */
     public function testDefaultCommandGetsAllArgumentsIfNoOtherCommandSpecified()
     {
         extract($this->generateArgvArgc("1 2 3 4 5"));
@@ -123,12 +176,15 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $def->expects($this->once())
                         ->method('testArguments')
                         ->with($this->equalTo(array(1,2,3,4,5)));
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def)
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
     }
 
+    /**
+     * @testdox "cliapp cmd 1 2 3 4 5" does not run default command by default
+     */
     public function testDefaultCommandDoesNotRunIfAlwaysRunOptionDisabled()
     {
         extract($this->generateArgvArgc("ar 1 2 3 4 5"));
@@ -137,13 +193,16 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $def = $this->getMock('CLIArgRepeater', array('run'));
         $def->expects($this->never())
                         ->method('run');
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def)
                                ->addCommand($ar, 'ar')
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
     }
 
+    /**
+     * @testdox "cliapp cmd 1 2 3 4 5" will run default command with no arguments if setDefaultCommand() is called with 'alwaysRuns' => true
+     */
     public function testDefaultCommandRunsIfAlwaysRunsOptionEnabled()
     {
         extract($this->generateArgvArgc("ar 1 2 3 4 5"));
@@ -155,31 +214,27 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $def->expects($this->once())
                         ->method('run')
                         ->will($this->returnValue(0));
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def, array('alwaysRuns' => true))
                                ->addCommand($ar, 'ar')
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
-    }
-
-    public function testDefaultCommandGetsNoArgumentsIfAlwaysRunOptionEnabledAndNoDefaultArguments()
-    {
-        extract($this->generateArgvArgc("ar 1 2 3 4 5"));
-
-        $ar = new CLIArgRepeater;
 
         // ensure proper arguments to run()
         $def = $this->getMock('CLIArgRepeater', array('testArguments'));
         $def->expects($this->once())
                         ->method('testArguments')
                         ->with($this->equalTo(array()));
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def, array('alwaysRuns' => true))
                                ->addCommand($ar, 'ar')
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
     }
 
+    /**
+     * @testdox "cliapp 1 2 cmd 1 2 3 4 5" will run default command with arguments array(1,2) if setDefaultCommand() is called with 'alwaysRuns' => true
+     */
     public function testDefaultCommandGetsFirstSetOfArgumentsIfAlwaysRunOptionEnabledAndArgumentsSpecifiedBeforeDefaultCommand()
     {
         extract($this->generateArgvArgc("1 2 ar 1 2 3 4 5"));
@@ -191,40 +246,23 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $def->expects($this->once())
                         ->method('testArguments')
                         ->with($this->equalTo(array(1,2)));
-        $o = CLImaxController::create()
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
                                ->setDefaultCommand($def, array('alwaysRuns' => true))
                                ->addCommand($ar, 'ar')
-                               ->runTest($argv, $argc);
+                               ->run($argv, $argc);
         $this->assertEquals(0, $o);
     }
 
-    public function testCommandRunsIfPresentInArgs()
+    public function testReturnsUsageErrorIfUsageDisplayedDueToLackOfCommands()
     {
-        extract($this->generateArgvArgc("hw"));
+        extract($this->generateArgvArgc(""));
 
-        $mock = $this->getMock('CLIHelloWorld', array('run'));
-        $mock->expects($this->once())
-                        ->method('run')
-                        ->will($this->returnValue(0));
-
-        $o = CLImaxController::create()
-                               ->addCommand($mock, array('hw'))
-                               ->runTest($argv, $argc);
+        // ensure result code
+        ob_start();
+        $result = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                                    ->run($argv, $argc);
+        $this->assertEquals(CLImaxController::ERR_USAGE, $result);
+        ob_end_clean();
     }
 
-    public function testCommandGetsExpectedArguments()
-    {
-        extract($this->generateArgvArgc("repeat 1 2 3 4 5"));
-
-        $ar = new CLIArgRepeater;
-        // ensure proper arguments to run()
-        $ar = $this->getMock('CLIArgRepeater', array('testArguments'));
-        $ar->expects($this->once())
-                        ->method('testArguments')
-                        ->with($this->equalTo(array(1,2,3,4,5)));
-        $o = CLImaxController::create()
-                               ->addCommand($ar, array('repeat'))
-                               ->runTest($argv, $argc);
-        $this->assertEquals(0, $o);
-    }
 }
