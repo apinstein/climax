@@ -1,0 +1,37 @@
+#!/usr/bin/env php
+<?php
+/* vim: set syntax=php expandtab tabstop=4 shiftwidth=4: */
+
+require_once 'CLImax.php';
+
+class Usage extends CLIMax_BaseCommand
+{
+    public function run($arguments, CLImaxController $cliController)
+    {
+        return $cliController->usage();
+    }
+}
+
+class CLImaxTest extends CLIMax_BaseCommand
+{
+    public function run($arguments, CLImaxController $cliController)
+    {
+        passthru("phpunit . 2>&1", $result);
+        return $result;
+    }
+}
+
+class CLImaxSpec extends CLIMax_BaseCommand
+{
+    public function run($arguments, CLImaxController $cliController)
+    {
+        passthru("phpunit --testdox . 2>&1", $result);
+        return $result;
+    }
+}
+
+CLImaxController::create()
+                  ->addCommand(new Usage, array('-h', '--help', 'help'))
+                  ->addCommand(new CLImaxTest, array('test'))
+                  ->addCommand(new CLImaxSpec, array('spec'))
+                  ->run($argv, $argc);
