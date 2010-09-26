@@ -26,7 +26,11 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $argvArgc = eval($loadArgvArgcCmd);
         return $argvArgc;
     }
-    public function testArgvArgcGen()
+
+    /**
+     * @testdox Ensure generateArgvArgc() test helper works.
+     */
+    public function testEnsureArgvArgcGeneratorWorks()
     {
         extract($this->generateArgvArgc("foo bar"));
         $this->assertEquals(array('-', 'foo', 'bar'), $argv);
@@ -37,12 +41,18 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(3, $argc);
     }
 
-    public function testCreate()
+    /**
+     * @testdox Has fluent constructor named CLImaxController::create()
+     */
+    public function testHasFluentStaticConstructorNamedCreate()
     {
         $o = CLImaxController::create();
         $this->assertTrue( $o instanceof CLImaxController );
     }
 
+    /**
+     * @testdox Reads default environemnt from $_ENV
+     */
     public function testDefaultEnvironment()
     {
         $_ENV = array('foo' => 'bar');
@@ -52,7 +62,7 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('bar', $o->getEnvironment('foo'));
     }
 
-    public function testMergeEnvironment()
+    public function testMergeEnvironmentDoesNotOverwriteKeysByDefault()
     {
         $_ENV = array('foo' => 'bar');
 
@@ -61,13 +71,23 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         // test merge w/no overwrite
         $o->mergeEnvironment(array('foo' => 'baz does not overwrite bar without force'));
         $this->assertEquals('bar', $o->getEnvironment('foo'));
+    }
+
+    /**
+     * @testdox Merge Environment Overwrites Keys if array('overwrite' => true) passed
+     */
+    public function testMergeEnvironmentOverwritesKeysIfOverwriteEnabled()
+    {
+        $_ENV = array('foo' => 'bar');
+
+        $o = CLImaxController::create();
 
         // test merge w/overwrite
         $o->mergeEnvironment(array('foo' => 'baz overwrites bar'), array('overwrite' => true));
         $this->assertEquals('baz overwrites bar', $o->getEnvironment('foo'));
     }
 
-    public function testSetEnvironment()
+    public function testSetEnvironmentReplacesEntireEnvironment()
     {
         $env = array('foo' => 'bar', 'boo' => 'baz');
         $o = CLImaxController::create();
@@ -77,15 +97,105 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($env, $o->getEnvironment());
     }
 
-    public function testDefaultCommandRunsIfNoCommandsOrArgumentsSpecified()
+    /**
+     * @testdox Calling "cmd" runs default command with no arguments.
+     */
+    public function testDefaultCommandRunsWithNoArgumentsIfNoCommandsOrArgumentsSpecified()
     {
-        $mock = $this->getMock('CLIHelloWorld', array('run'));
-        $mock->expects($this->once())
-                        ->method('run');
+        extract($this->generateArgvArgc(""));
 
+        $def = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $def->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array()));
         $o = CLImaxController::create()
-                               ->setDefaultCommand($mock)
-                               ->runTest(array('foo'), 1);
+                               ->setDefaultCommand($def)
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    public function testDefaultCommandGetsAllArgumentsIfNoOtherCommandSpecified()
+    {
+        extract($this->generateArgvArgc("1 2 3 4 5"));
+
+        // ensure proper arguments to run()
+        $def = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $def->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array(1,2,3,4,5)));
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($def)
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    public function testDefaultCommandDoesNotRunIfAlwaysRunOptionDisabled()
+    {
+        extract($this->generateArgvArgc("ar 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+        $def = $this->getMock('CLIArgRepeater', array('run'));
+        $def->expects($this->never())
+                        ->method('run');
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($def)
+                               ->addCommand($ar, 'ar')
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    public function testDefaultCommandRunsIfAlwaysRunsOptionEnabled()
+    {
+        extract($this->generateArgvArgc("ar 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+
+        // ensure run() is called
+        $def = $this->getMock('CLIArgRepeater', array('run'));
+        $def->expects($this->once())
+                        ->method('run')
+                        ->will($this->returnValue(0));
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($def, array('alwaysRuns' => true))
+                               ->addCommand($ar, 'ar')
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    public function testDefaultCommandGetsNoArgumentsIfAlwaysRunOptionEnabledAndNoDefaultArguments()
+    {
+        extract($this->generateArgvArgc("ar 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+
+        // ensure proper arguments to run()
+        $def = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $def->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array()));
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($def, array('alwaysRuns' => true))
+                               ->addCommand($ar, 'ar')
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
+    }
+
+    public function testDefaultCommandGetsFirstSetOfArgumentsIfAlwaysRunOptionEnabledAndArgumentsSpecifiedBeforeDefaultCommand()
+    {
+        extract($this->generateArgvArgc("1 2 ar 1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+
+        // ensure proper arguments to run()
+        $def = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $def->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array(1,2)));
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($def, array('alwaysRuns' => true))
+                               ->addCommand($ar, 'ar')
+                               ->runTest($argv, $argc);
+        $this->assertEquals(0, $o);
     }
 
     public function testCommandRunsIfPresentInArgs()
@@ -94,7 +204,8 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
 
         $mock = $this->getMock('CLIHelloWorld', array('run'));
         $mock->expects($this->once())
-                        ->method('run');
+                        ->method('run')
+                        ->will($this->returnValue(0));
 
         $o = CLImaxController::create()
                                ->addCommand($mock, array('hw'))
@@ -106,20 +217,14 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         extract($this->generateArgvArgc("repeat 1 2 3 4 5"));
 
         $ar = new CLIArgRepeater;
+        // ensure proper arguments to run()
+        $ar = $this->getMock('CLIArgRepeater', array('testArguments'));
+        $ar->expects($this->once())
+                        ->method('testArguments')
+                        ->with($this->equalTo(array(1,2,3,4,5)));
         $o = CLImaxController::create()
                                ->addCommand($ar, array('repeat'))
                                ->runTest($argv, $argc);
-        $this->assertEquals(5, $o);
-    }
-
-    public function testDefaultCommandGetsAllArgumentsIfNoOtherCommandSpecified()
-    {
-        extract($this->generateArgvArgc("1 2 3 4 5"));
-
-        $ar = new CLIArgRepeater;
-        $o = CLImaxController::create()
-                               ->setDefaultCommand($ar)
-                               ->runTest($argv, $argc);
-        $this->assertEquals(5, $o);
+        $this->assertEquals(0, $o);
     }
 }

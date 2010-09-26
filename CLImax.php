@@ -2,9 +2,10 @@
 
 class CLImaxController
 {
-    protected $commandMap = array();
-    protected $defaultCommand = NULL;
-    protected $environment = array();
+    protected $commandMap               = array();
+    protected $defaultCommand           = NULL;
+    protected $defaultCommandAlwaysRuns = false;
+    protected $environment              = array();
 
     /**
      * @var string The character linking a command flag to its argument. Default NULL (ie whitespace).
@@ -68,6 +69,11 @@ class CLImaxController
     {
         if (!($CLImaxCommand instanceof CLImaxCommand)) throw new Exception("CLImaxCommand required.");
 
+        if (!is_array($aliases) && is_string($aliases))
+        {
+            $aliases = array($aliases);
+        }
+
         foreach ($aliases as $alias) {
             if (isset($this->commandMap[$alias])) throw new Exception("Command " . get_class($this->commandMap[$alias]) . " has already been registered for alias {$alias}.");
             $this->commandMap[$alias] = $CLImaxCommand;
@@ -76,11 +82,12 @@ class CLImaxController
         return $this;
     }
 
-    public function setDefaultCommand($CLImaxCommand)
+    public function setDefaultCommand($CLImaxCommand, $opts = array())
     {
         if ($this->defaultCommand) throw new Exception("A default command has already been registered.");
 
         $this->defaultCommand = $CLImaxCommand;
+        $this->defaultCommandAlwaysRuns = (isset($opts['alwaysRuns']) && $opts['alwaysRuns']);
 
         return $this;
     }
@@ -96,17 +103,29 @@ class CLImaxController
         // convert argv stack into processable list
         $cmd = NULL;
         $args = array();
+        $defaultCommandArguments = array();
         while (true) {
             $token = array_shift($argv);
+            //print "processing '{$token}'\n";
             if (!$token)    // reached end
             {
-                if (count($commands) === 0 && $this->defaultCommand)
-                {
-                    $cmd = $this->defaultCommand;
-                }
-                if ($cmd)
+                if ($cmd)   // push last command
                 {
                     $commands[] = array('command' => $cmd, 'arguments' => $args);
+                    $cmd = NULL;
+                    $args = array();
+                }
+                if (
+                        $this->defaultCommand
+                        and (count($commands) === 0 or $this->defaultCommandAlwaysRuns)
+                   )
+                {
+                    //print "adding default command\n";
+                    if (count($commands) >= 1)
+                    {
+                        $args = $defaultCommandArguments;
+                    }
+                    $commands[] = array('command' => $this->defaultCommand, 'arguments' => $args);
                 }
                 break;
             }
@@ -117,6 +136,10 @@ class CLImaxController
                 if ($cmd)
                 {
                     $commands[] = array('command' => $cmd, 'arguments' => $args);
+                }
+                else     // stash original set of arguments away for use with defaultCommand as needed
+                {
+                    $defaultCommandArguments = $args;
                 }
                 $cmd = $nextCmd;
                 $args = array();
@@ -143,6 +166,7 @@ class CLImaxController
             $cmdCallback = array($command['command'], 'run');
             if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
             $result = call_user_func_array($cmdCallback, $runArguments);
+            if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
             if ($result !== 0) break;
         }
 
