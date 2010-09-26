@@ -10,8 +10,33 @@ require_once 'TestClasses.php';
 class CLImaxControllerTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @todo Implement testCreate().
+     * Generates the argv/argc vars that php creates when using CLI.
+     *
+     * This is useful for converting a shell command string into argv/argc for testing so it can be passed into run().
+     *
+     * @param string command
+     * @return array Assoc array with argv/argc.
      */
+    public function generateArgvArgc($cmd)
+    {
+        $php = $_SERVER['PHP_COMMAND'];
+        $cmd = "{$php} -r 'var_export(array(\"argv\" => \$argv, \"argc\" => \$argc));' {$cmd}";
+        $argvArgc = `{$cmd}`;
+        $loadArgvArgcCmd = "return {$argvArgc};";
+        $argvArgc = eval($loadArgvArgcCmd);
+        return $argvArgc;
+    }
+    public function testArgvArgcGen()
+    {
+        extract($this->generateArgvArgc("foo bar"));
+        $this->assertEquals(array('-', 'foo', 'bar'), $argv);
+        $this->assertEquals(3, $argc);
+
+        extract($this->generateArgvArgc("a=b c"));
+        $this->assertEquals(array('-', 'a=b', 'c'), $argv);
+        $this->assertEquals(3, $argc);
+    }
+
     public function testCreate()
     {
         $o = CLImaxController::create();
@@ -27,9 +52,6 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('bar', $o->getEnvironment('foo'));
     }
 
-    /**
-     * @todo Implement testMergeEnvironment().
-     */
     public function testMergeEnvironment()
     {
         $_ENV = array('foo' => 'bar');
@@ -45,9 +67,6 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('baz overwrites bar', $o->getEnvironment('foo'));
     }
 
-    /**
-     * @todo Implement testSetEnvironment().
-     */
     public function testSetEnvironment()
     {
         $env = array('foo' => 'bar', 'boo' => 'baz');
@@ -58,37 +77,27 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($env, $o->getEnvironment());
     }
 
-    /**
-     * @todo Implement testAddCommand().
-     */
-    public function testAddCommand()
+    public function testDefaultCommandRunsIfNoCommandsOrArgumentsSpecified()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $mock = $this->getMock('CLIHelloWorld', array('run'));
+        $mock->expects($this->once())
+                        ->method('run');
+
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($mock)
+                               ->runTest(array('foo'), 1);
     }
 
-    /**
-     * @todo Implement testSetDefaultCommand().
-     */
-    public function testSetDefaultCommand()
+    public function testCommandRunsIfPresentInArgs()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
-    }
+        extract($this->generateArgvArgc("hw"));
 
-    /**
-     * @todo Implement testRun().
-     */
-    public function testRun()
-    {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $mock = $this->getMock('CLIHelloWorld', array('run'));
+        $mock->expects($this->once())
+                        ->method('run');
+
+        $o = CLImaxController::create()
+                               ->addCommand($mock, array('hw'))
+                               ->runTest($argv, $argc);
     }
 }
-?>

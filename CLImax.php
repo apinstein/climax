@@ -11,9 +11,14 @@ class CLImaxController
      */
     protected $argLinker = NULL;
 
+    const DEBUG_EXPORT_ARGV_ARGC = 'debug_export_argv_argc';
+
     public function __construct($opts = array())
     {
         $this->environment = $_ENV;
+        $this->options = array_merge(array(
+                                            self::DEBUG_EXPORT_ARGV_ARGC            => false,
+        ), $opts);
     }
 
     public static function create($opts = array())
@@ -80,17 +85,14 @@ class CLImaxController
         return $this;
     }
 
-    protected function commandForFlag($flag)
-    {
-        if (!isset($this->commandMap[$flag])) throw new Exception("Couldn't find command for flag: {$flag}");
-        return $this->commandMap[$flag];
-    }
-
-    public function run($argv, $argc)
+    public function run($argv, $argc, $opts = array())
     {
         $commandNameRun = array_shift($argv);
 
+        print "ARGV:\n";
         print_r($argv);
+        print "Commands:\n";
+        print_r(array_keys($this->commandMap));
 
         $result = 0;
         $commands = array();
@@ -128,21 +130,45 @@ class CLImaxController
             }
         }
 
-        if ($this->defaultCommand)
+        // run commands
+        foreach ($commands as $key => $command) {
+            $lastCommand = $previousCommand = NULL;
+            $runArguments = array(
+                $command['arguments'],
+                $this->environment,
+                $commands,
+                $lastCommand,
+                $previousCommand
+            );
+            //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
+            $result = call_user_func_array(array($command['command'], 'run'), $runArguments);
+            if ($result !== 0) break;
+        }
+
+        if ($result === 0 && $this->defaultCommand)
         {
             $result = $this->defaultCommand->run(array(), $this->environment, $commands, NULL, $previousCommand);
         }
-        exit($result);
+
+        if (isset($opts['returnInsteadOfExit']))
+        {
+            return $result;
+        }
+        else
+        {
+            exit($result);
+        }
+    }
+
+    public function runTest($argv, $argc)
+    {
+        return $this->run($argv, $argc, array('returnInsteadOfExit' => true));
     }
 
     // returns the CLImaxCommand or NULL if not a command switch
     protected final function commandForToken($token)
     {
-        if (preg_match('/^-(\w)$/', $token, $matches) || preg_match('/^--(\w+)$/', $token, $matches))
-        {
-            $flag = $matches[1];
-            return $this->commandForFlag($token);
-        }
+        if (isset($this->commandMap[$token])) return $this->commandMap[$token];
         return NULL;
     }
 }
