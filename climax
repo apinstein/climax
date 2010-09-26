@@ -2,8 +2,12 @@
 <?php
 /* vim: set syntax=php expandtab tabstop=4 shiftwidth=4: */
 
+/**
+ * This is a climax application. It is used for development of climax.
+ */
 require_once 'CLImax.php';
 
+// DEFINE COMMANDS
 class Usage extends CLIMax_BaseCommand
 {
     public function run($arguments, CLImaxController $cliController)
@@ -30,6 +34,7 @@ class CLImaxSpec extends CLIMax_BaseCommand
     }
 }
 
+// WIRE UP APPLICTION
 CLImaxController::create()
                   ->addCommand(new Usage, array('-h', '--help', 'help'))
                   ->addCommand(new CLImaxTest, array('test'))
