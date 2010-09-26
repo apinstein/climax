@@ -111,4 +111,15 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
                                ->runTest($argv, $argc);
         $this->assertEquals(5, $o);
     }
+
+    public function testDefaultCommandGetsAllArgumentsIfNoOtherCommandSpecified()
+    {
+        extract($this->generateArgvArgc("1 2 3 4 5"));
+
+        $ar = new CLIArgRepeater;
+        $o = CLImaxController::create()
+                               ->setDefaultCommand($ar)
+                               ->runTest($argv, $argc);
+        $this->assertEquals(5, $o);
+    }
 }

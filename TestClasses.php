@@ -13,5 +13,4 @@ class CLIArgRepeater extends CLIMax_BaseCommand
     {
         return count($arguments);
     }
-    //public function getArgumentType() { return CLImaxCommand::ARG_OPTIONAL; }
 }
