@@ -162,13 +162,18 @@ class CLImaxController
         }
 
         // run commands
-        foreach ($commands as $key => $command) {
-            //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
-            $cmdCallback = array($command['command'], 'run');
-            if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
-            $result = call_user_func_array($cmdCallback, array($command['arguments'], $this));
-            if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
-            if ($result !== 0) break;
+        try {
+            foreach ($commands as $key => $command) {
+                //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
+                $cmdCallback = array($command['command'], 'run');
+                if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
+                $result = call_user_func_array($cmdCallback, array($command['arguments'], $this));
+                if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
+                if ($result !== 0) break;
+            }
+        } catch (Exception $e) {
+            fwrite(STDERR, $e->getMessage() . "\n");
+            exit(-1);
         }
 
         if (isset($this->options['returnInsteadOfExit']))
