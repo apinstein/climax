@@ -136,6 +136,7 @@ class CLImaxController
 
         // convert argv stack into processable list
         $cmd = NULL;
+        $cmdToken = NULL;
         $args = array();
         $defaultCommandArguments = array();
         while (true) {
@@ -145,7 +146,7 @@ class CLImaxController
             {
                 if ($cmd)   // push last command
                 {
-                    $commands[] = array('command' => $cmd, 'arguments' => $args);
+                    $commands[] = array('command' => $cmd, 'arguments' => $args, 'token' => $cmdToken);
                     $cmd = NULL;
                     $args = array();
                 }
@@ -159,7 +160,7 @@ class CLImaxController
                     {
                         $args = $defaultCommandArguments;
                     }
-                    $commands[] = array('command' => $this->defaultCommand, 'arguments' => $args);
+                    $commands[] = array('command' => $this->defaultCommand, 'arguments' => $args, 'token' => '<default>');
                 }
                 break;
             }
@@ -169,13 +170,14 @@ class CLImaxController
             {
                 if ($cmd)
                 {
-                    $commands[] = array('command' => $cmd, 'arguments' => $args);
+                    $commands[] = array('command' => $cmd, 'arguments' => $args, 'token' => $cmdToken);
                 }
                 else     // stash original set of arguments away for use with defaultCommand as needed
                 {
                     $defaultCommandArguments = $args;
                 }
                 $cmd = $nextCmd;
+                $cmdToken = $token;
                 $args = array();
             }
             else
@@ -184,16 +186,16 @@ class CLImaxController
             }
         }
 
-        // @todo ENFORCE COMMAND ARGUMENT RULES (OPT/REQ/COUNT ETC)
-
         if (count($commands) === 0)
         {
             return $this->usage();
         }
 
         // run commands
+        $currentCommand = NULL;
         try {
             foreach ($commands as $key => $command) {
+                $currentCommand = $command;
                 //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
                 $cmdCallback = array($command['command'], 'run');
                 if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
@@ -201,6 +203,8 @@ class CLImaxController
                 if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
                 if ($result !== 0) break;
             }
+        } catch (CLImaxCommand_ArugumentException $e) {
+            fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
         } catch (Exception $e) {
             fwrite(STDERR, $e->getMessage() . "\n");
             exit(-1);
@@ -239,6 +243,7 @@ class CLImaxController
         return NULL;
     }
 }
+class CLImaxCommand_ArugumentException extends Exception {}
 
 interface CLImaxCommand
 {
@@ -288,6 +293,7 @@ class CLImaxEnvironmentOption extends CLIMax_BaseCommand
     protected $requiresArgument;
     protected $allowsMultipleArguments;
     protected $noArgumentValue;
+    protected $allowedValues;
 
     public function __construct($environmentKey, $opts = array())
     {
@@ -296,16 +302,18 @@ class CLImaxEnvironmentOption extends CLIMax_BaseCommand
                                     'requiresArgument'          => false,
                                     'allowsMultipleArguments'   => false,
                                     'noArgumentValue'           => NULL,
+                                    'allowedValues'             => NULL,
         ), $opts);
         $this->requiresArgument = $opts['requiresArgument'];
         $this->allowsMultipleArguments = $opts['allowsMultipleArguments'];
         $this->noArgumentValue = $opts['noArgumentValue'];
+        $this->allowedValues = $opts['allowedValues'];
     }
     public function run($arguments, CLImaxController $cliController)
     {
         // argument checks
-        if ($this->requiresArgument && count($arguments) === 0) throw new Exception("Argument required.");
-        if (!$this->allowsMultipleArguments && count($arguments) > 1) throw new Exception("Only one argument accepted.");
+        if ($this->requiresArgument && count($arguments) === 0) throw new CLImaxCommand_ArugumentException("Argument required.");
+        if (!$this->allowsMultipleArguments && count($arguments) > 1) throw new CLImaxCommand_ArugumentException("Only one argument accepted.");
 
         if (count($arguments) === 0 && $this->noArgumentValue)
         {
@@ -316,6 +324,12 @@ class CLImaxEnvironmentOption extends CLIMax_BaseCommand
         {
             $arguments = $arguments[0];
         }
+
+        if ($this->allowedValues)
+        {
+            if (count(array_diff($arguments, $this->allowedValues)) > 0) throw new CLImaxCommand_ArugumentException();
+        }
+
         $cliController->setEnvironment($this->environmentKey, $arguments);
         return 0;
     }
