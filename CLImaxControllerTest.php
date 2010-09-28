@@ -24,6 +24,16 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $argvArgc = `{$cmd}`;
         $loadArgvArgcCmd = "return {$argvArgc};";
         $argvArgc = eval($loadArgvArgcCmd);
+        if ($argvArgc === false)
+        {
+            throw new Exception("Error generating argv/argc for {$cmd}");
+        }
+        // fix "\\-" to -
+        for ($i = 0; $i < count($argvArgc['argv']); $i++) {
+            while (preg_match('/^[-]*[\\\\]+./', $argvArgc['argv'][$i])) {
+                $argvArgc['argv'][$i] = preg_replace('/^(-*)\\\\-/', '$1-', $argvArgc['argv'][$i]);
+            }
+        }
         return $argvArgc;
     }
 
@@ -263,6 +273,28 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
                                     ->run($argv, $argc);
         $this->assertEquals(CLImaxController::ERR_USAGE, $result);
         ob_end_clean();
+    }
+
+    public function testAddEnvironmentFlagWithExactlyOneArgument()
+    {
+        extract($this->generateArgvArgc("\\\\-\\\\-flag 1"));
+
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                               ->addEnvironmentFlagWithExactlyOneArgument('foo', '--flag');
+        $res = $o->run($argv, $argc);
+        $this->assertEquals(0, $res);
+        $this->assertEquals(1, $o->getEnvironment('foo'));
+    }
+
+    public function testAddEnvironmentFlagSetsValue()
+    {
+        extract($this->generateArgvArgc("\\\\-\\\\-flag"));
+
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                               ->addEnvironmentFlagSetsValue('foo', 1, '--flag');
+        $res = $o->run($argv, $argc);
+        $this->assertEquals(0, $res);
+        $this->assertEquals(1, $o->getEnvironment('foo'));
     }
 
 }

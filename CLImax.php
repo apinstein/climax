@@ -45,9 +45,17 @@ class CLImaxController
         return $this;
     }
 
-    public function setEnvironment($env)
+    public function setEnvironment($key, $value = NULL)
     {
-        $this->environment = $env;
+        if (is_array($key))
+        {
+            if ($value !== NULL) throw new Exception("When calling setEnvironment() with an array, only 1 parameter is accepted.");
+            $this->environment = $key;
+        }
+        else
+        {
+            $this->environment[$key] = $value;
+        }
         return $this;
     }
 
@@ -72,10 +80,12 @@ class CLImaxController
     {
         if (!($CLImaxCommand instanceof CLImaxCommand)) throw new Exception("CLImaxCommand required.");
 
-        if (!is_array($aliases) && is_string($aliases))
+        if (!is_array($aliases))
         {
             $aliases = array($aliases);
         }
+
+        if (count($aliases) === 0) throw new Exception("addCommand() requires at least one alias.");
 
         foreach ($aliases as $alias) {
             if (isset($this->commandMap[$alias])) throw new Exception("Command " . get_class($this->commandMap[$alias]) . " has already been registered for alias {$alias}.");
@@ -83,6 +93,26 @@ class CLImaxController
         }
         $this->usageCommands[] = array('aliases' => $aliases, 'command' => $CLImaxCommand);
 
+        return $this;
+    }
+
+    public function addEnvironmentFlagWithExactlyOneArgument($key, $aliases = NULL)
+    {
+        if ($aliases === NULL)
+        {
+            $aliases = "--{$key}";
+        }
+        $this->addCommand(new CLImaxEnvironmentOption($key, array('requiresArgument' => true)), $aliases);
+        return $this;
+    }
+
+    public function addEnvironmentFlagSetsValue($key, $flagSetsValue, $aliases = NULL)
+    {
+        if ($aliases === NULL)
+        {
+            $aliases = "--{$key}";
+        }
+        $this->addCommand(new CLImaxEnvironmentOption($key, array('requiresArgument' => false, 'noArgumentValue' => $flagSetsValue)), $aliases);
         return $this;
     }
 
@@ -250,4 +280,43 @@ abstract class CLIMax_BaseCommand implements CLImaxCommand
         return $cmd;
     }
     public function getDescription($aliases, $argLinker) { return NULL; }
+}
+
+class CLImaxEnvironmentOption extends CLIMax_BaseCommand
+{
+    protected $environmentKey;
+    protected $requiresArgument;
+    protected $allowsMultipleArguments;
+    protected $noArgumentValue;
+
+    public function __construct($environmentKey, $opts = array())
+    {
+        $this->environmentKey = $environmentKey;
+        $opts = array_merge(array(
+                                    'requiresArgument'          => false,
+                                    'allowsMultipleArguments'   => false,
+                                    'noArgumentValue'           => NULL,
+        ), $opts);
+        $this->requiresArgument = $opts['requiresArgument'];
+        $this->allowsMultipleArguments = $opts['allowsMultipleArguments'];
+        $this->noArgumentValue = $opts['noArgumentValue'];
+    }
+    public function run($arguments, CLImaxController $cliController)
+    {
+        // argument checks
+        if ($this->requiresArgument && count($arguments) === 0) throw new Exception("Argument required.");
+        if (!$this->allowsMultipleArguments && count($arguments) > 1) throw new Exception("Only one argument accepted.");
+
+        if (count($arguments) === 0 && $this->noArgumentValue)
+        {
+            $arguments = array($this->noArgumentValue);
+        }
+
+        if (count($arguments) === 1)
+        {
+            $arguments = $arguments[0];
+        }
+        $cliController->setEnvironment($this->environmentKey, $arguments);
+        return 0;
+    }
 }
