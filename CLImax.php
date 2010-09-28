@@ -96,23 +96,25 @@ class CLImaxController
         return $this;
     }
 
-    public function addEnvironmentFlagWithExactlyOneArgument($key, $aliases = NULL)
+    public function addEnvironmentFlagWithExactlyOneArgument($key, $aliases = NULL, $opts = array())
     {
         if ($aliases === NULL)
         {
             $aliases = "--{$key}";
         }
-        $this->addCommand(new CLImaxEnvironmentOption($key, array('requiresArgument' => true)), $aliases);
+        $opts = array_merge($opts, array('requiresArgument' => true));   // requiresArgument should always win
+        $this->addCommand(new CLImaxEnvironmentOption($key, $opts), $aliases);
         return $this;
     }
 
-    public function addEnvironmentFlagSetsValue($key, $flagSetsValue, $aliases = NULL)
+    public function addEnvironmentFlagSetsValue($key, $flagSetsValue, $aliases = NULL, $opts = array())
     {
         if ($aliases === NULL)
         {
             $aliases = "--{$key}";
         }
-        $this->addCommand(new CLImaxEnvironmentOption($key, array('requiresArgument' => false, 'noArgumentValue' => $flagSetsValue)), $aliases);
+        $opts = array_merge($opts, array('requiresArgument' => false, 'noArgumentValue' => $flagSetsValue)); // these values always win
+        $this->addCommand(new CLImaxEnvironmentOption($key, $opts), $aliases);
         return $this;
     }
 
@@ -205,9 +207,10 @@ class CLImaxController
             }
         } catch (CLImaxCommand_ArugumentException $e) {
             fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
+            $result = -2;
         } catch (Exception $e) {
             fwrite(STDERR, $e->getMessage() . "\n");
-            exit(-1);
+            $result = -1;
         }
 
         if (isset($this->options['returnInsteadOfExit']))
@@ -320,14 +323,17 @@ class CLImaxEnvironmentOption extends CLIMax_BaseCommand
             $arguments = array($this->noArgumentValue);
         }
 
+        if (!is_array($arguments)) throw new Exception("Arguments should be an array but wasn't. Internal fail.");
+        if ($this->allowedValues)
+        {
+            $badArgs = array_diff($arguments, $this->allowedValues);
+            if (count($badArgs) > 0) throw new CLImaxCommand_ArugumentException("Invalid argument(s): " . join(', ', $badArgs));
+        }
+
+        // flatten argument to a single value as a convenience for working with the environment data later
         if (count($arguments) === 1)
         {
             $arguments = $arguments[0];
-        }
-
-        if ($this->allowedValues)
-        {
-            if (count(array_diff($arguments, $this->allowedValues)) > 0) throw new CLImaxCommand_ArugumentException();
         }
 
         $cliController->setEnvironment($this->environmentKey, $arguments);
