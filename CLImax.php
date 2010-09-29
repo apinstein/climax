@@ -209,7 +209,7 @@ class CLImaxController
             fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
             $result = -2;
         } catch (Exception $e) {
-            fwrite(STDERR, $e->getMessage() . "\n");
+            fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n");
             $result = -1;
         }
 
