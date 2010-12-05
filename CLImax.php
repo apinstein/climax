@@ -63,6 +63,10 @@ class CLImaxController
     {
         if ($key)
         {
+            if (!isset($this->environment[$key]))
+            {
+                return NULL;
+            }
             return $this->environment[$key];
         }
         else
