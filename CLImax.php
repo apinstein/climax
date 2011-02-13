@@ -63,6 +63,8 @@ class CLImaxController
     {
         if ($key)
         {
+            if (!array_key_exists($key, $this->environment)) return NULL;
+
             return $this->environment[$key];
         }
         else
