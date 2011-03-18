@@ -14,6 +14,7 @@ class CLImaxController
     protected $argLinker = NULL;
 
     const OPT_RETURN_INSTEAD_OF_EXIT    = 'returnInsteadOfExit';
+    const OPT_SLIENT                    = 'silent';
 
     const ERR_USAGE                 = -1;
 
@@ -22,6 +23,7 @@ class CLImaxController
         $this->environment = $_ENV;
         $this->options = array_merge(array(
                                             self::OPT_RETURN_INSTEAD_OF_EXIT            => false,
+                                            self::OPT_SLIENT                            => false,
         ), $opts);
     }
 
@@ -208,10 +210,10 @@ class CLImaxController
                 if ($result !== 0) break;
             }
         } catch (CLImaxCommand_ArugumentException $e) {
-            fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
+            $this->options[self::OPT_SLIENT] || fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
             $result = -2;
         } catch (Exception $e) {
-            fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n");
+            $this->options[self::OPT_SLIENT] || fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n");
             $result = -1;
         }
 

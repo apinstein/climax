@@ -312,7 +312,7 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
     {
         extract($this->generateArgvArgc("flag illegalVal"));
 
-        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true, CLImaxController::OPT_SLIENT => true))
                                ->addEnvironmentFlagSetsValue('foo', 1, 'flag', array('allowedValues' => array('validVal')));
         $res = $o->run($argv, $argc);
         $this->assertEquals(-2, $res);
