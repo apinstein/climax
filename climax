@@ -26,8 +26,56 @@ class CLImaxSpec extends CLIMax_BaseCommand
     }
 }
 
+class CLImaxScaffold extends CLIMax_BaseCommand
+{
+    public function run($arguments, CLImaxController $cliController)
+    {
+        if (count($arguments) > 1) throw new CLImaxCommand_ArugumentException("scaffold command requires exactly 1 argument: name of file to create.");
+        if (count($arguments) === 0)
+        {
+            $fileName = 'myapp';
+        }
+        else
+        {
+            $fileName = $arguments[0];
+        }
+
+        $filePath = "./{$fileName}";
+        if (file_exists($filePath)) throw new Exception("Specified file {$filePath} already exists.");
+        file_put_contents($filePath, '#!/usr/bin/env php
+<?php
+/* vim: set syntax=php expandtab tabstop=4 shiftwidth=4: */
+/**
+ * Created by CLImax http://github.com/apinstein/climax
+ * ' . date('r') . '
+ */
+
+require_once "CLImax.php";
+class CLImaxSampleCommand extends CLIMax_BaseCommand
+{
+    public function run($arguments, CLImaxController $cliController)
+    {
+        // do something interesting
+        print "Sample...\n";
+        // or throw new Exception("error", $returnCode);
+        return 0;
+    }
+}
+
+// WIRE UP APPLICTION
+CLImaxController::create()
+                  ->addCommand(new CLImaxSampleCommand, array("sample"))
+                  ->run($argv, $argc);
+');
+        chmod($filePath, 0777);
+        print "Wrote CLImax scaffold app at {$filePath}\n";
+        return 0;
+    }
+}
+
 // WIRE UP APPLICTION
 CLImaxController::create()
                   ->addCommand(new CLImaxTest, array('test'))
                   ->addCommand(new CLImaxSpec, array('spec'))
+                  ->addCommand(new CLImaxScaffold, array('scaffold'))
                   ->run($argv, $argc);
