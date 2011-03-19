@@ -8,14 +8,6 @@
 require_once 'CLImax.php';
 
 // DEFINE COMMANDS
-class Usage extends CLIMax_BaseCommand
-{
-    public function run($arguments, CLImaxController $cliController)
-    {
-        return $cliController->usage();
-    }
-}
-
 class CLImaxTest extends CLIMax_BaseCommand
 {
     public function run($arguments, CLImaxController $cliController)
@@ -36,7 +28,6 @@ class CLImaxSpec extends CLIMax_BaseCommand
 
 // WIRE UP APPLICTION
 CLImaxController::create()
-                  ->addCommand(new Usage, array('-h', '--help', 'help'))
                   ->addCommand(new CLImaxTest, array('test'))
                   ->addCommand(new CLImaxSpec, array('spec'))
                   ->run($argv, $argc);
