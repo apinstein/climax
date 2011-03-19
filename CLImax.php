@@ -229,7 +229,7 @@ class CLImaxController
 
     public function usage()
     {
-        print "Usage:\n";
+        print "Usage:\n------\n";
         foreach ($this->usageCommands as $usageInfo) {
             print $usageInfo['command']->getUsage($usageInfo['aliases'], $this->argLinker) . "\n";
         }
@@ -287,6 +287,12 @@ abstract class CLIMax_BaseCommand implements CLImaxCommand
                 $cmd .= " / ";
             }
             $cmd .= "{$alias}{$argLinker}";
+        }
+
+        $description = $this->getDescription($aliases, $argLinker);
+        if ($description)
+        {
+            $cmd .= "\n  {$description}\n";
         }
 
         return $cmd;

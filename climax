@@ -15,6 +15,7 @@ class CLImaxTest extends CLIMax_BaseCommand
         passthru("phpunit . 2>&1", $result);
         return $result;
     }
+    public function getDescription($aliases, $argLinker) { return 'Run all CLImax unit tests.'; }
 }
 
 class CLImaxSpec extends CLIMax_BaseCommand
@@ -24,6 +25,7 @@ class CLImaxSpec extends CLIMax_BaseCommand
         passthru("phpunit --testdox . 2>&1", $result);
         return $result;
     }
+    public function getDescription($aliases, $argLinker) { return 'Print out the spec document.'; }
 }
 
 class CLImaxScaffold extends CLIMax_BaseCommand
@@ -71,6 +73,7 @@ CLImaxController::create()
         print "Wrote CLImax scaffold app at {$filePath}\n";
         return 0;
     }
+    public function getDescription($aliases, $argLinker) { return 'Create a new climax project. Accepts a single argument for the name of the new project; defaults to myapp.'; }
 }
 
 // WIRE UP APPLICTION
