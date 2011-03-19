@@ -1,1 +1,4 @@
 *.sw[op]
+package.xml
+myapp
+*.tgz
