@@ -217,7 +217,7 @@ class CLImaxController
             $result = -1;
         }
 
-        if (isset($this->options['returnInsteadOfExit']))
+        if ($this->options['returnInsteadOfExit'])
         {
             return $result;
         }
@@ -233,7 +233,7 @@ class CLImaxController
         foreach ($this->usageCommands as $usageInfo) {
             print $usageInfo['command']->getUsage($usageInfo['aliases'], $this->argLinker) . "\n";
         }
-        if (isset($this->options['returnInsteadOfExit']))
+        if ($this->options['returnInsteadOfExit'])
         {
             return self::ERR_USAGE;
         }
