@@ -148,7 +148,7 @@ class CLImaxController
         while (true) {
             $token = array_shift($argv);
             //print "processing '{$token}'\n";
-            if (!$token)    // reached end
+            if ($token === NULL)    // reached end
             {
                 if ($cmd)   // push last command
                 {

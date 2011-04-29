@@ -317,4 +317,16 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $res = $o->run($argv, $argc);
         $this->assertEquals(-2, $res);
     }
+
+    public function testTokenWithValueOf0DoesNotStopProcessing()
+    {
+        extract($this->generateArgvArgc("0 flag 25"));
+
+        $o = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true, CLImaxController::OPT_SLIENT => true))
+                               ->addEnvironmentFlagWithExactlyOneArgument('foo', 'flag')
+                               ;
+        $res = $o->run($argv, $argc);
+        $this->assertEquals(0, $res);
+        $this->assertEquals(25, $o->getEnvironment('foo'));
+    }
 }
