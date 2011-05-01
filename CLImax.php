@@ -5,7 +5,7 @@ class CLImaxController
     protected $commandMap               = array();
     protected $usageCommands            = array();
     protected $defaultCommand           = NULL;
-    protected $defaultCommandAlwaysRuns = false;
+    protected $defaultCommandAlwaysRuns = true;
     protected $environment              = array();
 
     /**
@@ -34,7 +34,7 @@ class CLImaxController
 
     public function mergeEnvironment($env, $opts = array())
     {
-        if (!is_array($env)) throw new Exception("Array required.");
+        if (!is_array($env)) throw new CLImax_Exception("Array required.");
 
         if (isset($opts['overwrite']) && $opts['overwrite'])
         {
@@ -51,7 +51,7 @@ class CLImaxController
     {
         if (is_array($key))
         {
-            if ($value !== NULL) throw new Exception("When calling setEnvironment() with an array, only 1 parameter is accepted.");
+            if ($value !== NULL) throw new CLImax_Exception("When calling setEnvironment() with an array, only 1 parameter is accepted.");
             $this->environment = $key;
         }
         else
@@ -82,17 +82,17 @@ class CLImaxController
 
     public function addCommand($CLImaxCommand, $aliases = array())
     {
-        if (!($CLImaxCommand instanceof CLImaxCommand)) throw new Exception("CLImaxCommand required.");
+        if (!($CLImaxCommand instanceof CLImaxCommand)) throw new CLImax_Exception("CLImaxCommand required.");
 
         if (!is_array($aliases))
         {
             $aliases = array($aliases);
         }
 
-        if (count($aliases) === 0) throw new Exception("addCommand() requires at least one alias.");
+        if (count($aliases) === 0) throw new CLImax_Exception("addCommand() requires at least one alias.");
 
         foreach ($aliases as $alias) {
-            if (isset($this->commandMap[$alias])) throw new Exception("Command " . get_class($this->commandMap[$alias]) . " has already been registered for alias {$alias}.");
+            if (isset($this->commandMap[$alias])) throw new CLImax_Exception("Command " . get_class($this->commandMap[$alias]) . " has already been registered for alias {$alias}.");
             $this->commandMap[$alias] = $CLImaxCommand;
         }
         $this->usageCommands[] = array('aliases' => $aliases, 'command' => $CLImaxCommand);
@@ -124,7 +124,7 @@ class CLImaxController
 
     public function setDefaultCommand($CLImaxCommand, $opts = array())
     {
-        if ($this->defaultCommand) throw new Exception("A default command has already been registered.");
+        if ($this->defaultCommand) throw new CLImax_Exception("A default command has already been registered.");
 
         $this->defaultCommand = $CLImaxCommand;
         $this->defaultCommandAlwaysRuns = (isset($opts['alwaysRuns']) && $opts['alwaysRuns']);
@@ -132,8 +132,23 @@ class CLImaxController
         return $this;
     }
 
+    private function setupCompleteCheck()
+    {
+        if (count($this->commandMap) === 0)
+        {
+            throw new CLImax_Exception("No commands specified!");
+        }
+
+        if ($this->defaultCommand === NULL and count($this->commandMap) === 1)
+        {
+            $this->setDefaultCommand(current($this->commandMap));
+        }
+    }
+
     public function run($argv, $argc, $opts = array())
     {
+        $this->setupCompleteCheck();
+
         $commandNameRun = array_shift($argv);
 
         $result = 0;
@@ -204,13 +219,16 @@ class CLImaxController
                 $currentCommand = $command;
                 //print "Calling " . get_class($command['command']) . "::run(" . join(', ', $command['arguments']) . ")";
                 $cmdCallback = array($command['command'], 'run');
-                if (!is_callable($cmdCallback)) throw new Exception("Not callable: " . var_export($cmdCallback, true));
+                if (!is_callable($cmdCallback)) throw new CLImax_Exception("Not callable: " . var_export($cmdCallback, true));
                 $result = call_user_func_array($cmdCallback, array($command['arguments'], $this));
-                if (is_null($result)) throw new Exception("Command " . get_class($command['command']) . " returned NULL.");
+                if (is_null($result)) throw new CLImax_Exception("Command " . get_class($command['command']) . " returned NULL.");
                 if ($result !== 0) break;
             }
         } catch (CLImaxCommand_ArugumentException $e) {
             $this->options[self::OPT_SLIENT] || fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
+            $result = -2;
+        } catch (CLImax_Exception $e) {
+            $this->options[self::OPT_SLIENT] || fwrite(STDERR, "CLImax exception: {$e->getMessage()}\n");
             $result = -2;
         } catch (Exception $e) {
             $this->options[self::OPT_SLIENT] || fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n");
@@ -250,7 +268,8 @@ class CLImaxController
         return NULL;
     }
 }
-class CLImaxCommand_ArugumentException extends Exception {}
+class CLImax_Exception extends Exception {}
+class CLImaxCommand_ArugumentException extends CLImax_Exception {}
 
 interface CLImaxCommand
 {
@@ -333,7 +352,7 @@ class CLImaxEnvironmentOption extends CLIMax_BaseCommand
             $arguments = array($this->noArgumentValue);
         }
 
-        if (!is_array($arguments)) throw new Exception("Arguments should be an array but wasn't. Internal fail.");
+        if (!is_array($arguments)) throw new CLImax_Exception("Arguments should be an array but wasn't. Internal fail.");
         if ($this->allowedValues)
         {
             $badArgs = array_diff($arguments, $this->allowedValues);
