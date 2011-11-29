@@ -213,7 +213,7 @@ class CLImaxController
             $this->options[self::OPT_SLIENT] || fwrite(STDERR, "Error processing {$currentCommand['token']}: {$e->getMessage()}\n");
             $result = -2;
         } catch (Exception $e) {
-            $this->options[self::OPT_SLIENT] || fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n");
+            $this->options[self::OPT_SLIENT] || fwrite(STDERR, get_class($e) . ": {$e->getMessage()}\n{$e->getTraceAsString()}\n");
             $result = -1;
         }
 
