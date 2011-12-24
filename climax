@@ -44,31 +44,13 @@ class CLImaxScaffold extends CLIMax_BaseCommand
 
         $filePath = "./{$fileName}";
         if (file_exists($filePath)) throw new Exception("Specified file {$filePath} already exists.");
-        file_put_contents($filePath, '#!/usr/bin/env php
-<?php
-/* vim: set syntax=php expandtab tabstop=4 shiftwidth=4: */
-/**
- * Created by CLImax http://github.com/apinstein/climax
- * ' . date('r') . '
- */
 
-require_once "CLImax.php";
-class CLImaxSampleCommand extends CLIMax_BaseCommand
-{
-    public function run($arguments, CLImaxController $cliController)
-    {
-        // do something interesting
-        print "Sample...\n";
-        // or throw new Exception("error", $returnCode);
-        return 0;
-    }
-}
+        ob_start();
+        include dirname(__FILE__) . '/templates/app_scaffold.php';
+        $appScaffold = ob_get_contents();
+        ob_end_clean();
 
-// WIRE UP APPLICTION
-CLImaxController::create()
-                  ->addCommand(new CLImaxSampleCommand, array("sample"))
-                  ->run($argv, $argc);
-');
+        file_put_contents($filePath, $appScaffold);
         chmod($filePath, 0777);
         print "Wrote CLImax scaffold app at {$filePath}\n";
         return 0;
