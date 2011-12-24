@@ -1,4 +1,9 @@
 <?php
+/* vim: set syntax=php expandtab tabstop=4 shiftwidth=4: */
+
+require dirname(__FILE__).'/CLImaxException.php';
+require dirname(__FILE__).'/CLImaxCommand.php';
+require dirname(__FILE__).'/commands/CLImaxCommand_EnvironmentOption.php';
 
 class CLImaxController
 {
@@ -107,7 +112,7 @@ class CLImaxController
             $aliases = "--{$key}";
         }
         $opts = array_merge($opts, array('requiresArgument' => true));   // requiresArgument should always win
-        $this->addCommand(new CLImaxEnvironmentOption($key, $opts), $aliases);
+        $this->addCommand(new CLImaxCommand_EnvironmentOption($key, $opts), $aliases);
         return $this;
     }
 
@@ -118,7 +123,7 @@ class CLImaxController
             $aliases = "--{$key}";
         }
         $opts = array_merge($opts, array('requiresArgument' => false, 'noArgumentValue' => $flagSetsValue)); // these values always win
-        $this->addCommand(new CLImaxEnvironmentOption($key, $opts), $aliases);
+        $this->addCommand(new CLImaxCommand_EnvironmentOption($key, $opts), $aliases);
         return $this;
     }
 
@@ -266,106 +271,5 @@ class CLImaxController
     {
         if (isset($this->commandMap[$token])) return $this->commandMap[$token];
         return NULL;
-    }
-}
-class CLImax_Exception extends Exception {}
-class CLImaxCommand_ArugumentException extends CLImax_Exception {}
-
-interface CLImaxCommand
-{
-    const ARG_NONE          = 'none';
-    const ARG_OPTIONAL      = 'optional';
-    const ARG_REQUIRED      = 'required';
-
-    public function run($arguments, CLImaxController $cliController);
-    public function getUsage($aliases, $argLinker);
-    public function getDescription($aliases, $argLinker);
-    public function getArgumentType();
-    public function getAllowsMultipleUse();
-}
-
-abstract class CLIMax_BaseCommand implements CLImaxCommand
-{
-    public function getAllowsMultipleUse() { return false; }
-    public function getArgumentType() { return CLImaxCommand::ARG_NONE; }
-    public function getUsage($aliases, $argLinker)
-    {
-        // calculate arg linker string
-        switch ($this->getArgumentType()) {
-            case CLImaxCommand::ARG_NONE:
-                $argLinker = NULL;
-                break;
-            default:
-                $argLinker = "{$argLinker}<arg>";
-                break;
-        }
-        $cmd = NULL;
-        foreach ($aliases as $alias) {
-            if ($cmd)
-            {
-                $cmd .= " / ";
-            }
-            $cmd .= "{$alias}{$argLinker}";
-        }
-
-        $description = $this->getDescription($aliases, $argLinker);
-        if ($description)
-        {
-            $cmd .= "\n  {$description}\n";
-        }
-
-        return $cmd;
-    }
-    public function getDescription($aliases, $argLinker) { return NULL; }
-}
-
-class CLImaxEnvironmentOption extends CLIMax_BaseCommand
-{
-    protected $environmentKey;
-    protected $requiresArgument;
-    protected $allowsMultipleArguments;
-    protected $noArgumentValue;
-    protected $allowedValues;
-
-    public function __construct($environmentKey, $opts = array())
-    {
-        $this->environmentKey = $environmentKey;
-        $opts = array_merge(array(
-                                    'requiresArgument'          => false,
-                                    'allowsMultipleArguments'   => false,
-                                    'noArgumentValue'           => NULL,
-                                    'allowedValues'             => NULL,
-        ), $opts);
-        $this->requiresArgument = $opts['requiresArgument'];
-        $this->allowsMultipleArguments = $opts['allowsMultipleArguments'];
-        $this->noArgumentValue = $opts['noArgumentValue'];
-        $this->allowedValues = $opts['allowedValues'];
-    }
-    public function run($arguments, CLImaxController $cliController)
-    {
-        // argument checks
-        if ($this->requiresArgument && count($arguments) === 0) throw new CLImaxCommand_ArugumentException("Argument required.");
-        if (!$this->allowsMultipleArguments && count($arguments) > 1) throw new CLImaxCommand_ArugumentException("Only one argument accepted.");
-
-        if (count($arguments) === 0 && $this->noArgumentValue)
-        {
-            $arguments = array($this->noArgumentValue);
-        }
-
-        if (!is_array($arguments)) throw new CLImax_Exception("Arguments should be an array but wasn't. Internal fail.");
-        if ($this->allowedValues)
-        {
-            $badArgs = array_diff($arguments, $this->allowedValues);
-            if (count($badArgs) > 0) throw new CLImaxCommand_ArugumentException("Invalid argument(s): " . join(', ', $badArgs));
-        }
-
-        // flatten argument to a single value as a convenience for working with the environment data later
-        if (count($arguments) === 1)
-        {
-            $arguments = $arguments[0];
-        }
-
-        $cliController->setEnvironment($this->environmentKey, $arguments);
-        return 0;
     }
 }

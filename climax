@@ -5,30 +5,30 @@
 /**
  * This is a climax application. It is used for development of climax.
  */
-require_once 'CLImax.php';
+require 'src/CLImax.php';
 
 // DEFINE COMMANDS
-class CLImaxTest extends CLIMax_BaseCommand
+class CLImaxTest extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {
-        passthru("phpunit . 2>&1", $result);
+        passthru("phpunit test 2>&1", $result);
         return $result;
     }
     public function getDescription($aliases, $argLinker) { return 'Run all CLImax unit tests.'; }
 }
 
-class CLImaxSpec extends CLIMax_BaseCommand
+class CLImaxSpec extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {
-        passthru("phpunit --testdox . 2>&1", $result);
+        passthru("phpunit --testdox test 2>&1", $result);
         return $result;
     }
     public function getDescription($aliases, $argLinker) { return 'Print out the spec document.'; }
 }
 
-class CLImaxScaffold extends CLIMax_BaseCommand
+class CLImaxScaffold extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {

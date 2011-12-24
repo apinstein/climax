@@ -1,6 +1,6 @@
 <?php
 
-class CLIHelloWorld extends CLIMax_BaseCommand
+class CLIHelloWorld extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {
@@ -8,7 +8,7 @@ class CLIHelloWorld extends CLIMax_BaseCommand
         return 0;
     }
 }
-class CLIArgRepeater extends CLIMax_BaseCommand
+class CLIArgRepeater extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {

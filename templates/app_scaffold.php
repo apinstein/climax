@@ -7,7 +7,7 @@
  */
 
 require_once "CLImax.php";
-class CLImaxSampleCommand extends CLIMax_BaseCommand
+class CLImaxSampleCommand extends CLImaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {

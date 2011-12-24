@@ -1,0 +1,3 @@
+0.0.x ??? - Internal BC-breaking refactor
+- CLIMax_BaseCommand renamed to CLImaxCommand_Base
+- CLImaxEnvironmentOption renamed to CLImaxCommand_EnvironmentOption

@@ -1,6 +1,6 @@
 <?php
 
-require_once 'CLImax.php';
+require_once dirname(__FILE__) . '/../src/CLImax.php';
 require_once 'TestClasses.php';
 
 /**
