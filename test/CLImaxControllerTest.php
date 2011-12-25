@@ -158,6 +158,7 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
 
         // ensure proper arguments to run()
         $cli = $this->getMock('CLImaxController', array('usage'));
+        $cli->addCommand(new CLIArgRepeater, 'foo');
         $cli->expects($this->once())
                         ->method('usage');
         $result = $cli->run($argv, $argc, array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true));
@@ -269,13 +270,14 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(0, $o);
     }
 
-    public function testReturnsUsageErrorIfUsageDisplayedDueToLackOfCommands()
+    public function testReturnsUsageErrorIfUsageDisplayed()
     {
         extract($this->generateArgvArgc(""));
 
         // ensure result code
         ob_start();
         $result = CLImaxController::create(array(CLImaxController::OPT_RETURN_INSTEAD_OF_EXIT => true))
+                                    ->addCommand(new CLIArgRepeater, 'foo')
                                     ->run($argv, $argc);
         $this->assertEquals(CLImaxController::ERR_USAGE, $result);
         ob_end_clean();

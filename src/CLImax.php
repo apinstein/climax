@@ -139,14 +139,9 @@ class CLImaxController
 
     private function setupCompleteCheck()
     {
-        if (count($this->commandMap) === 0)
+        if (count($this->commandMap) === 0 && is_null($this->defaultCommand))
         {
             throw new CLImax_Exception("No commands specified!");
-        }
-
-        if ($this->defaultCommand === NULL and count($this->commandMap) === 1)
-        {
-            $this->setDefaultCommand(current($this->commandMap));
         }
     }
 
