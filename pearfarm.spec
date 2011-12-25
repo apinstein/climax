@@ -5,7 +5,11 @@ $spec = Pearfarm_PackageSpec::create(array(Pearfarm_PackageSpec::OPT_BASEDIR => 
              ->setChannel('apinstein.pearfarm.org')
              ->setSummary('CLI Framework for PHP.')
              ->setDescription('CLI Framework for PHP. Makes it easy to build complex CLI applications. Also simple enough to use for small CLI scripts as well.')
+<<<<<<< HEAD
              ->setReleaseVersion('0.0.3')
+=======
+             ->setReleaseVersion('0.0.5')
+>>>>>>> d6e71ad... Add stack trace when handling uncaught exceptions. Bump version.
              ->setReleaseStability('alpha')
              ->setApiVersion('0.0.2')
              ->setApiStability('alpha')
