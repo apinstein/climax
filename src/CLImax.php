@@ -152,6 +152,8 @@ class CLImaxController
 
     public function run($argv, $argc, $opts = array())
     {
+        $this->options = array_merge($this->options, $opts);
+
         $this->setupCompleteCheck();
 
         $commandNameRun = array_shift($argv);
