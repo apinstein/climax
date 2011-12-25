@@ -18,7 +18,8 @@ class CLImaxControllerTest extends PHPUnit_Framework_TestCase
      */
     public function generateArgvArgc($cmd)
     {
-        $cmd = "php -r 'var_export(array(\"argv\" => \$argv, \"argc\" => \$argc));' {$cmd}";
+        // be sure to disable xdebug when we call out to php from here so that we can use xdebug to work on climax (otherwise MacGDB pukes).
+        $cmd = "unset XDEBUG_CONFIG; php -r 'var_export(array(\"argv\" => \$argv, \"argc\" => \$argc));' {$cmd}";
 
         exec($cmd, $output, $retVal);
         if ($retVal != 0)
