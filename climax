@@ -6,26 +6,47 @@
  * This is a climax application. It is used for development of climax.
  */
 require 'src/CLImax.php';
-
-// DEFINE COMMANDS
-class CLImaxTest extends CLImaxCommand_Base
+require 'PHPUnit/Autoload.php';
+class CLImaxTest extends CLIMaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {
-        passthru("phpunit test 2>&1", $result);
-        return $result;
+        array_unshift($arguments, 'fake-phpunit-program');
+
+        $arguments[] = 'test';
+
+        $command = new PHPUnit_TextUI_Command;
+        $command->run($arguments);
+        return 0;
     }
-    public function getDescription($aliases, $argLinker) { return 'Run all CLImax unit tests.'; }
+    public function getDescription($aliases, $argLinker) { return 'Run PHPUnit bootstrapped to this install. Pass whatever arguments you would normally pass to phpunit.'; }
 }
 
-class CLImaxSpec extends CLImaxCommand_Base
+class CLImaxSpec extends CLIMaxCommand_Base
 {
     public function run($arguments, CLImaxController $cliController)
     {
-        passthru("phpunit --testdox test 2>&1", $result);
-        return $result;
+        array_unshift($arguments, 'fake-phpunit-program');
+
+        // testdox needs to be last (after verbose or other commands)
+        if (count($arguments) > 1)
+        {
+            $last = array_pop($arguments);
+            $arguments[] = '--testdox';
+            $arguments[] = $last;
+        }
+        else
+        {
+            $arguments[] = '--testdox';
+        }
+
+        $arguments[] = 'test';
+
+        $command = new PHPUnit_TextUI_Command;
+        $command->run($arguments);
+        return 0;
     }
-    public function getDescription($aliases, $argLinker) { return 'Print out the spec document.'; }
+    public function getDescription($aliases, $argLinker) { return 'Print out the spec document for the given entity.'; }
 }
 
 class CLImaxScaffold extends CLImaxCommand_Base

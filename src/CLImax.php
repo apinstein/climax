@@ -173,6 +173,7 @@ class CLImaxController
                     $cmd = NULL;
                     $args = array();
                 }
+                // we reached the end of argument processing; should we run the default command for any reason? (no commands or alwaysRuns)
                 if (
                         $this->defaultCommand
                         and (count($commands) === 0 or $this->defaultCommandAlwaysRuns)
@@ -188,6 +189,7 @@ class CLImaxController
                 break;
             }
 
+            // @todo There is a subtle bug here; a token intended to be an argument for one command, for which an actual command is aliased to the token, the token will be interpreted as a COMMAND not a argument to the previous command...
             $nextCmd = $this->commandForToken($token);
             if ($nextCmd)
             {
