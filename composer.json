@@ -1,0 +1,19 @@
+{
+    "name": "apinstein/climax",
+    "type": "library",
+    "description": "PHP CLI Framework",
+    "keywords": ["cli","framework"],
+    "homepage": "http://github.com/apinstein/climax",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alan Pinstein",
+            "email": "apinstein@mac.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.2.0"
+    },
+    "bin": ["climax"]
+}
